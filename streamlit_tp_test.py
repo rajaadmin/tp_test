@@ -14,13 +14,15 @@ HEADERS = {
     "Accept-Language": "da-DK,da;q=0.9,en;q=0.8",
 }
 
-# ---- helpers ----
+# ---- Helper Functions ----
 def fetch_html(url: str) -> str:
+    """Fetch HTML content from a given URL."""
     r = requests.get(url, headers=HEADERS, timeout=30)
     r.raise_for_status()
     return r.text
 
 def extract_jsonld_blocks(html: str):
+    """Extract JSON-LD blocks from HTML."""
     soup = BeautifulSoup(html, "html.parser")
     blocks = []
     for tag in soup.find_all("script", type="application/ld+json"):
@@ -38,6 +40,7 @@ def extract_jsonld_blocks(html: str):
     return blocks
 
 def walk(obj):
+    """Recursively yield all nested dicts inside obj."""
     if isinstance(obj, Mapping):
         yield obj
         for v in obj.values():
@@ -47,6 +50,7 @@ def walk(obj):
             yield from walk(it)
 
 def is_review(d: dict) -> bool:
+    """Check if a dict represents a review."""
     t = d.get("@type")
     if not t:
         return False
@@ -57,6 +61,7 @@ def is_review(d: dict) -> bool:
     return False
 
 def get_reviews_from_jsonld(jsonld_blocks):
+    """Extract review nodes from JSON-LD blocks."""
     reviews = []
     for block in jsonld_blocks:
         for node in walk(block):
@@ -65,6 +70,7 @@ def get_reviews_from_jsonld(jsonld_blocks):
     return reviews
 
 def set_page(url: str, page: int) -> str:
+    """Update URL with a specific page number."""
     u = urlparse(url)
     q = parse_qs(u.query)
     q["page"] = [str(page)]
@@ -72,6 +78,7 @@ def set_page(url: str, page: int) -> str:
     return urlunparse((u.scheme, u.netloc, u.path, u.params, new_query, u.fragment))
 
 def collect_review_sample(base_url: str, sample_size: int, max_pages: int, sleep_secs: float):
+    """Collect reviews from multiple pages."""
     collected, seen_ids = [], set()
     page = 1
     while len(collected) < sample_size and page <= max_pages:
